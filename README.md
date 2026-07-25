@@ -1,6 +1,8 @@
 # fast-publish
 
-Publish packages via git tags with a single command. Bump version, commit, tag, and push to origin from the tree view.
+Publish packages via git tags with a single command.
+
+Bump version, commit, tag, and push to origin from the tree view.
 
 ## Features
 

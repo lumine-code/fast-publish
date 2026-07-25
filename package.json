@@ -1,7 +1,7 @@
 {
   "name": "fast-publish",
   "author": "lumine-code",
-  "description": "Publish packages via git tags with a single command",
+  "description": "Publish packages via git tags with a single command.",
   "repository": "https://github.com/lumine-code/fast-publish",
   "bugs": {
     "url": "https://github.com/lumine-code/fast-publish/issues"
