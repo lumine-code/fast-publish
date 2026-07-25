@@ -1,22 +1,40 @@
 {
   "name": "fast-publish",
-  "description": "Publish Pulsar packages via Git tags or PPM",
-  "repository": "https://github.com/asiloisad/pulsar-fast-publish",
+  "author": "lumine-code",
+  "description": "Publish packages via git tags with a single command",
+  "repository": "https://github.com/lumine-code/fast-publish",
+  "bugs": {
+    "url": "https://github.com/lumine-code/fast-publish/issues"
+  },
   "keywords": [
     "publish",
     "github"
   ],
-  "version": "2.4.1",
+  "version": "3.0.0",
   "license": "MIT",
   "engines": {
     "atom": ">=1.100.0 <2.0.0"
   },
   "main": "./lib/main",
+  "scripts": {
+    "test": "cd ../lumine && npm run test:only -- ../fast-publish/spec",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
   "consumedServices": {
     "tree-view": {
       "versions": {
         "^1.0.0": "consumeTreeView"
       }
     }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-n": "^18.2.2",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.6"
   }
 }

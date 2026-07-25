@@ -1,0 +1,15 @@
+{
+  "context-menu": {
+    ".tree-view .directory > .list-item": [
+      {
+        "label": "Git Publish",
+        "submenu": [
+          { "label": "as Major", "command": "fast-publish:git-major" },
+          { "label": "as Minor", "command": "fast-publish:git-minor" },
+          { "label": "as Patch", "command": "fast-publish:git-patch" }
+        ]
+      },
+      { "type": "separator" }
+    ]
+  }
+}
