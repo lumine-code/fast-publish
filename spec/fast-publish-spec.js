@@ -45,7 +45,7 @@ describe("fast-publish", () => {
 
   describe("the consumed tree-view service", () => {
     it("publishes every selected directory", async () => {
-      const disposable = mainModule.consumeTreeView({ selectedPaths: () => [__dirname] });
+      const disposable = mainModule.consumeTreeViewSelection({ selectedPaths: () => [__dirname] });
       spyOn(mainModule, "publish");
 
       const treeView = document.createElement("div");
@@ -61,7 +61,7 @@ describe("fast-publish", () => {
     });
 
     it("skips selected files, publishing directories only", async () => {
-      mainModule.consumeTreeView({ selectedPaths: () => [__filename, __dirname] });
+      mainModule.consumeTreeViewSelection({ selectedPaths: () => [__filename, __dirname] });
       spyOn(mainModule, "publish");
 
       const treeView = document.createElement("div");
@@ -130,7 +130,9 @@ describe("fast-publish", () => {
         resolveFirst();
         atom.commands.dispatch(workspaceElement, "fast-publish:stop");
       });
-      mainModule.consumeTreeView({ selectedPaths: () => [__dirname, path.dirname(__dirname)] });
+      mainModule.consumeTreeViewSelection({
+        selectedPaths: () => [__dirname, path.dirname(__dirname)],
+      });
 
       const treeView = document.createElement("div");
       treeView.classList.add("tree-view");

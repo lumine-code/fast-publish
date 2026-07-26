@@ -32,7 +32,7 @@ Commands available in `atom-workspace`:
 
 ## Services
 
-- **tree-view** (`^1.0.0`): consumed to read the selected directories that publishing commands operate on.
+- **tree-view.selection** (`^1.0.0`): consumed to read the selected directories that publishing commands operate on.
 
 ## Contributing
 
