@@ -41,6 +41,14 @@ describe("fast-publish", () => {
     it("bumps the patch version", () => {
       expect(mainModule.increaseVersionNumber("1.2.3", "patch")).toBe("1.2.4");
     });
+
+    // A published version is always plain major.minor.patch, so anything
+    // carrying a suffix is a mistake rather than something to interpret.
+    it("refuses a version that is not plain major.minor.patch", () => {
+      expect(() => mainModule.increaseVersionNumber("1.2.3-dev", "patch")).toThrow();
+      expect(() => mainModule.increaseVersionNumber("1.2", "patch")).toThrow();
+      expect(() => mainModule.increaseVersionNumber("1.2.3", "sideways")).toThrow();
+    });
   });
 
   describe("the consumed tree-view service", () => {
@@ -78,12 +86,19 @@ describe("fast-publish", () => {
   describe("publish", () => {
     let tempDir;
 
+    const manifest = () => JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf8"));
+
     beforeEach(() => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "fast-publish-spec-"));
       fs.writeFileSync(
         path.join(tempDir, "package.json"),
-        JSON.stringify({ name: "sample", version: "1.2.3" }, null, 2),
+        `${JSON.stringify({ name: "sample", version: "1.2.3" }, null, 2)}\n`,
       );
+      spyOn(mainModule, "gitPrepare");
+      // The guards run real git; the repository they would inspect is not what
+      // these specs are about, so answer "nothing blocking" unless a spec says
+      // otherwise.
+      spyOn(mainModule, "blockingReason").and.resolveTo(null);
     });
 
     afterEach(() => {
@@ -91,31 +106,58 @@ describe("fast-publish", () => {
     });
 
     it("bumps package.json and hands off to gitPrepare", async () => {
-      spyOn(mainModule, "gitPrepare");
       await mainModule.publish(tempDir, "minor");
 
-      const data = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf8"));
-      expect(data.version).toBe("1.3.0");
+      expect(manifest().version).toBe("1.3.0");
       expect(mainModule.gitPrepare).toHaveBeenCalledWith(tempDir, "1.3.0");
+    });
+
+    // Every manifest in the fleet ends with a newline. Writing one without it
+    // makes the released commit fail its own format check, so the tag would
+    // point at a commit whose CI is red.
+    it("keeps the trailing newline on the manifest it rewrites", async () => {
+      await mainModule.publish(tempDir, "patch");
+      expect(fs.readFileSync(path.join(tempDir, "package.json"), "utf8").endsWith("}\n")).toBe(
+        true,
+      );
+    });
+
+    it("carries the new version into the lockfile", async () => {
+      const lockPath = path.join(tempDir, "package-lock.json");
+      fs.writeFileSync(
+        lockPath,
+        `${JSON.stringify({ name: "sample", version: "1.2.3", packages: { "": { version: "1.2.3" } } }, null, 2)}\n`,
+      );
+
+      await mainModule.publish(tempDir, "major");
+
+      const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+      expect(lock.version).toBe("2.0.0");
+      expect(lock.packages[""].version).toBe("2.0.0");
+    });
+
+    it("leaves the manifest untouched when something blocks the release", async () => {
+      mainModule.blockingReason.and.resolveTo("the working tree has uncommitted changes");
+
+      await mainModule.publish(tempDir, "minor");
+
+      expect(manifest().version).toBe("1.2.3");
+      expect(mainModule.gitPrepare).not.toHaveBeenCalled();
     });
 
     it("skips -if modes when nothing changed since the last tag", async () => {
       spyOn(mainModule, "hasChangesSinceLastTag").and.resolveTo(false);
-      spyOn(mainModule, "gitPrepare");
       await mainModule.publish(tempDir, "patch-if");
 
-      const data = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf8"));
-      expect(data.version).toBe("1.2.3");
+      expect(manifest().version).toBe("1.2.3");
       expect(mainModule.gitPrepare).not.toHaveBeenCalled();
     });
 
     it("publishes -if modes when changes exist since the last tag", async () => {
       spyOn(mainModule, "hasChangesSinceLastTag").and.resolveTo(true);
-      spyOn(mainModule, "gitPrepare");
       await mainModule.publish(tempDir, "patch-if");
 
-      const data = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf8"));
-      expect(data.version).toBe("1.2.4");
+      expect(manifest().version).toBe("1.2.4");
       expect(mainModule.gitPrepare).toHaveBeenCalledWith(tempDir, "1.2.4");
     });
   });
