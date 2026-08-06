@@ -102,7 +102,9 @@ describe("fast-publish", () => {
     });
 
     afterEach(() => {
-      fs.rmSync(tempDir, { recursive: true, force: true });
+      // Retries because Windows keeps a directory non-empty until the last handle on a
+      // child closes, and `force` swallows only ENOENT.
+      fs.rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     });
 
     it("bumps package.json and hands off to gitPrepare", async () => {
