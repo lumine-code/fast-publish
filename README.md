@@ -26,7 +26,7 @@ Commands available in `.tree-view`:
 - `fast-publish:git-minor-if`: publish a minor update via git (if changed since last tag),
 - `fast-publish:git-patch-if`: publish a patch update via git (if changed since last tag).
 
-Commands available in `atom-workspace`:
+Commands available in `lumine-workspace`:
 
 - `fast-publish:stop`: stop the batch publish loop after the current item.
 

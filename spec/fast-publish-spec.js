@@ -6,13 +6,13 @@ describe("fast-publish", () => {
   let workspaceElement, mainModule;
 
   beforeEach(async () => {
-    workspaceElement = atom.views.getView(atom.workspace);
+    workspaceElement = lumine.views.getView(lumine.workspace);
     jasmine.attachToDOM(workspaceElement);
-    ({ mainModule } = await atom.packages.activatePackage("fast-publish"));
+    ({ mainModule } = await lumine.packages.activatePackage("fast-publish"));
   });
 
   it("registers its commands", () => {
-    const workspaceCommands = atom.commands
+    const workspaceCommands = lumine.commands
       .findCommands({ target: workspaceElement })
       .map((command) => command.name);
     expect(workspaceCommands).toContain("fast-publish:stop");
@@ -20,7 +20,7 @@ describe("fast-publish", () => {
     const treeView = document.createElement("div");
     treeView.classList.add("tree-view");
     workspaceElement.appendChild(treeView);
-    const treeViewCommands = atom.commands
+    const treeViewCommands = lumine.commands
       .findCommands({ target: treeView })
       .map((command) => command.name);
     for (const mode of ["major", "minor", "patch"]) {
@@ -59,7 +59,7 @@ describe("fast-publish", () => {
       const treeView = document.createElement("div");
       treeView.classList.add("tree-view");
       workspaceElement.appendChild(treeView);
-      atom.commands.dispatch(treeView, "fast-publish:git-patch");
+      lumine.commands.dispatch(treeView, "fast-publish:git-patch");
 
       await new Promise((resolve) => requestAnimationFrame(resolve));
       expect(mainModule.publish).toHaveBeenCalledWith(__dirname, "patch");
@@ -75,7 +75,7 @@ describe("fast-publish", () => {
       const treeView = document.createElement("div");
       treeView.classList.add("tree-view");
       workspaceElement.appendChild(treeView);
-      atom.commands.dispatch(treeView, "fast-publish:git-minor");
+      lumine.commands.dispatch(treeView, "fast-publish:git-minor");
 
       await new Promise((resolve) => requestAnimationFrame(resolve));
       expect(mainModule.publish).toHaveBeenCalledTimes(1);
@@ -172,7 +172,7 @@ describe("fast-publish", () => {
       });
       spyOn(mainModule, "publish").and.callFake(async () => {
         resolveFirst();
-        atom.commands.dispatch(workspaceElement, "fast-publish:stop");
+        lumine.commands.dispatch(workspaceElement, "fast-publish:stop");
       });
       mainModule.consumeTreeViewSelection({
         selectedPaths: () => [__dirname, path.dirname(__dirname)],
@@ -181,7 +181,7 @@ describe("fast-publish", () => {
       const treeView = document.createElement("div");
       treeView.classList.add("tree-view");
       workspaceElement.appendChild(treeView);
-      atom.commands.dispatch(treeView, "fast-publish:git-patch");
+      lumine.commands.dispatch(treeView, "fast-publish:git-patch");
 
       await firstStarted;
       await new Promise((resolve) => requestAnimationFrame(resolve));
