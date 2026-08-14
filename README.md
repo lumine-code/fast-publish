@@ -13,7 +13,7 @@ Bump version, commit, tag, and push to origin from the tree view.
 
 ## Installation
 
-To install `fast-publish` search for _fast-publish_ in the Install pane of the Lumine settings or run `lumine --install lumine-code/fast-publish`.
+To install `fast-publish` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/fast-publish`.
 
 ## Commands
 
@@ -32,7 +32,7 @@ Commands available in `lumine-workspace`:
 
 ## Services
 
-- **tree-view.selection** (`^1.0.0`): consumed to read the selected directories that publishing commands operate on.
+- `tree-view.selection`: consumed to read the selected directories that publishing commands operate on.
 
 ## Contributing
 
