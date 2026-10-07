@@ -1,6 +1,9 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const exec = promisify(execFile);
 
 describe("fast-publish", () => {
   let workspaceElement, mainModule;
@@ -85,6 +88,7 @@ describe("fast-publish", () => {
 
   describe("publish", () => {
     let tempDir;
+    let operations, runWorkflow;
 
     const manifest = () => JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf8"));
 
@@ -95,6 +99,14 @@ describe("fast-publish", () => {
         `${JSON.stringify({ name: "sample", version: "1.2.3" }, null, 2)}\n`,
       );
       spyOn(mainModule, "gitPrepare");
+      operations = {};
+      runWorkflow = jasmine
+        .createSpy("runWorkflow")
+        .and.callFake(async (name, callback) => callback(operations));
+      spyOn(lumine.repositories, "resolveForPath").and.resolveTo({
+        getWorkingDirectory: () => tempDir,
+        getOperations: () => ({ runWorkflow }),
+      });
       // The guards run real git; the repository they would inspect is not what
       // these specs are about, so answer "nothing blocking" unless a spec says
       // otherwise.
@@ -111,7 +123,11 @@ describe("fast-publish", () => {
       await mainModule.publish(tempDir, "minor");
 
       expect(manifest().version).toBe("1.3.0");
-      expect(mainModule.gitPrepare).toHaveBeenCalledWith(tempDir, "1.3.0");
+      expect(mainModule.gitPrepare).toHaveBeenCalledWith(operations, tempDir, "1.3.0");
+      const workflow = runWorkflow.calls.mostRecent().args;
+      expect(workflow[0]).toBe("release");
+      expect(typeof workflow[1]).toBe("function");
+      expect(workflow[2]).toEqual({ refresh: "both" });
     });
 
     // Every manifest in the fleet ends with a newline. Writing one without it
@@ -160,7 +176,7 @@ describe("fast-publish", () => {
       await mainModule.publish(tempDir, "patch-if");
 
       expect(manifest().version).toBe("1.2.4");
-      expect(mainModule.gitPrepare).toHaveBeenCalledWith(tempDir, "1.2.4");
+      expect(mainModule.gitPrepare).toHaveBeenCalledWith(operations, tempDir, "1.2.4");
     });
   });
 
@@ -187,5 +203,67 @@ describe("fast-publish", () => {
       await new Promise((resolve) => requestAnimationFrame(resolve));
       expect(mainModule.publish).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("serializes complete releases and pushes their matching commits and annotated tags", async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "fast-publish-workflow-"));
+    const workingDirectory = path.join(directory, "package");
+    const remoteDirectory = path.join(directory, "remote.git");
+    const git = async (args, cwd = workingDirectory) =>
+      (await exec(lumine.config.get("git.path") || "git", args, { cwd })).stdout.trim();
+    fs.mkdirSync(workingDirectory);
+    try {
+      await git(["init", "--bare", remoteDirectory], directory);
+      await git(["init", "--initial-branch=master"]);
+      await git(["config", "user.name", "Test Author"]);
+      await git(["config", "user.email", "test@example.test"]);
+      await git(["config", "commit.gpgSign", "false"]);
+      await git(["config", "tag.gpgSign", "false"]);
+      fs.writeFileSync(
+        path.join(workingDirectory, "package.json"),
+        '{"name":"sample","version":"1.2.3"}\n',
+      );
+      await git(["add", "package.json"]);
+      await git(["commit", "-m", "Create a test package"]);
+      await git(["remote", "add", "origin", remoteDirectory]);
+      await git(["push", "--set-upstream", "origin", "master"]);
+      const errors = spyOn(lumine.notifications, "addError");
+      const warnings = spyOn(lumine.notifications, "addWarning");
+
+      await Promise.all([
+        mainModule.publish(workingDirectory, "patch"),
+        mainModule.publish(workingDirectory, "minor"),
+      ]);
+
+      expect(errors).not.toHaveBeenCalled();
+      expect(warnings).not.toHaveBeenCalled();
+      const tags = (await git(["tag", "--list", "v*"])).split("\n");
+      expect(tags.length).toBe(2);
+      const taggedVersions = await Promise.all(
+        tags.map(async (tag) => {
+          expect(await git(["cat-file", "-t", tag])).toBe("tag");
+          return JSON.parse(await git(["show", `${tag}:package.json`])).version;
+        }),
+      );
+      // Discovery can finish in either order; both releases must read the
+      // manifest after the previous release, rather than overwrite the same version.
+      expect(["1.2.4,1.3.0", "1.3.0,1.3.1"]).toContain(taggedVersions.join(","));
+      expect(
+        JSON.parse(fs.readFileSync(path.join(workingDirectory, "package.json"), "utf8")).version,
+      ).toBe(taggedVersions.at(-1));
+      expect(await git(["rev-parse", "HEAD"])).toBe(
+        await git(["rev-parse", "refs/heads/master"], remoteDirectory),
+      );
+      expect(await git(["status", "--porcelain"])).toBe("");
+    } finally {
+      const repository = lumine.repositories.getForPath(workingDirectory);
+      repository?.destroy();
+      await lumine.fileWatchClient.settlePendingTeardown();
+      // Git makes object files read-only; clear that bit before Windows cleanup.
+      for (const relativePath of fs.readdirSync(directory, { recursive: true })) {
+        fs.chmodSync(path.join(directory, relativePath), 0o700);
+      }
+      fs.rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    }
   });
 });
