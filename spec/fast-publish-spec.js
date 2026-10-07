@@ -180,6 +180,41 @@ describe("fast-publish", () => {
     });
   });
 
+  describe("checked Git probes", () => {
+    function operations(...results) {
+      return {
+        executeGit: jasmine
+          .createSpy("executeGit")
+          .and.returnValues(
+            ...results.map((result) => Promise.resolve({ stdout: "", stderr: "", ...result })),
+          ),
+      };
+    }
+
+    it("treats only an absent tag result as a free release tag", async () => {
+      const first = [{ exitCode: 0 }, { exitCode: 0, stdout: "master\n" }];
+      expect(
+        await mainModule.blockingReason(operations(...first, { exitCode: 1 }), "v1.2.3"),
+      ).toBeNull();
+      await expectAsync(
+        mainModule.blockingReason(
+          operations(...first, { exitCode: 128, stderr: "invalid repository" }),
+          "v1.2.3",
+        ),
+      ).toBeRejectedWithError("invalid repository");
+    });
+
+    it("propagates a failed revision count instead of reporting no unreleased changes", async () => {
+      const executor = operations(
+        { exitCode: 0, stdout: "v1.2.3\n" },
+        { exitCode: 128, stderr: "unable to read revision history" },
+      );
+      await expectAsync(mainModule.hasChangesSinceLastTag(executor)).toBeRejectedWithError(
+        "unable to read revision history",
+      );
+    });
+  });
+
   describe("fast-publish:stop", () => {
     it("stops the batch loop after the current item", async () => {
       let resolveFirst;
