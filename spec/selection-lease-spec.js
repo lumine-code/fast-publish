@@ -60,4 +60,23 @@ describe("Fast Publish selection service leases", () => {
 
     expect(main.publish.calls.allArgs()).toEqual(paths.map((selected) => [selected, "patch"]));
   });
+
+  it("selects exact surviving A-B-A edge order for actual release dispatch", async () => {
+    const first = { selectedPaths: () => paths };
+    provide(first);
+    const middle = provide({ selectedPaths: () => [__dirname] });
+    const newest = provide(first);
+    await lumine.commands.dispatch(tree, "fast-publish:git-patch");
+    expect(main.publish.calls.allArgs()).toEqual(paths.map((selected) => [selected, "patch"]));
+    main.publish.calls.reset();
+
+    newest.dispose();
+    await lumine.commands.dispatch(tree, "fast-publish:git-patch");
+    expect(main.publish.calls.allArgs()).toEqual([[__dirname, "patch"]]);
+    main.publish.calls.reset();
+
+    middle.dispose();
+    await lumine.commands.dispatch(tree, "fast-publish:git-patch");
+    expect(main.publish.calls.allArgs()).toEqual(paths.map((selected) => [selected, "patch"]));
+  });
 });
