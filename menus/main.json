@@ -6,6 +6,29 @@
       },
       {
         "label": "Git Publish",
+        "id": "fast-publish:tree-context",
+        "afterGroupContaining": [
+          "folder-sync:create",
+          "folder-sync:run",
+          {
+            "id": "terminal:tree-context"
+          },
+          "tree-view-favourite:add",
+          "tree-view-favourite:remove",
+          "diff-view:enable",
+          "jupyter-cells:import-notebook",
+          "jupyter-view:open-source",
+          "graviss:open-source-on-right",
+          "markdown-preview:preview-file",
+          "image-editor:open-in-new-tab",
+          "search-panel:project-show-in-current-directory",
+          "open-external:show",
+          "tree-view:open-selected-entry-up",
+          "native-clip:paste",
+          "tree-view:paste",
+          "tree-view:remove",
+          "tree-view:add-file"
+        ],
         "submenu": [
           {
             "label": "as Major",
