@@ -26,18 +26,20 @@
         ],
         "submenu": [
           {
-            "label": "as Major",
+            "label": "Major Release",
             "command": "fast-publish:git-major"
           },
           {
-            "label": "as Minor",
+            "label": "Minor Release",
             "command": "fast-publish:git-minor"
           },
           {
-            "label": "as Patch",
+            "label": "Patch Release",
             "command": "fast-publish:git-patch"
           }
-        ]
+        ],
+        "group": "tools",
+        "order": 50
       },
       {
         "type": "separator"
