@@ -56,7 +56,10 @@ describe("fast-publish", () => {
 
   describe("the consumed tree-view service", () => {
     it("publishes every selected directory", async () => {
-      const disposable = mainModule.consumeTreeViewSelection({ selectedPaths: () => [__dirname] });
+      const disposable = mainModule.consumeTreeViewSelection({
+        selectedPaths: () => [__dirname],
+        getSelectionSnapshot: () => ({ directoryCount: 1 }),
+      });
       spyOn(mainModule, "publish");
 
       const treeView = document.createElement("div");
@@ -72,7 +75,10 @@ describe("fast-publish", () => {
     });
 
     it("skips selected files, publishing directories only", async () => {
-      mainModule.consumeTreeViewSelection({ selectedPaths: () => [__filename, __dirname] });
+      mainModule.consumeTreeViewSelection({
+        selectedPaths: () => [__filename, __dirname],
+        getSelectionSnapshot: () => ({ directoryCount: 1 }),
+      });
       spyOn(mainModule, "publish");
 
       const treeView = document.createElement("div");
@@ -227,6 +233,7 @@ describe("fast-publish", () => {
       });
       mainModule.consumeTreeViewSelection({
         selectedPaths: () => [__dirname, path.dirname(__dirname)],
+        getSelectionSnapshot: () => ({ directoryCount: 2 }),
       });
 
       const treeView = document.createElement("div");

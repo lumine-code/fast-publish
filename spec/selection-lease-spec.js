@@ -21,6 +21,7 @@ describe("Fast Publish selection service leases", () => {
     await lumine.packages.deactivatePackage("fast-publish");
   });
   function provide(value) {
+    value.getSelectionSnapshot ??= () => ({ directoryCount: value.selectedPaths().length });
     const registration = hub.provide("tree-view.selection", "1.0.0", value);
     providers.push(registration);
     return registration;
